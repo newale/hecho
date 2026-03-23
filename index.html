@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ya lo hice · Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --paper: #faf7f2;
+    --ink: #1a1612;
+    --ink-soft: #6b6358;
+    --ink-faint: #c4b9a8;
+    --accent: #c84b2f;
+    --accent-pale: #f2e8e5;
+    --line: #e2dbd0;
+    --shadow: rgba(26,22,18,0.08);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.5;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    color: #faf7f2;
+  }
+
+  .logo em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .sidebar-section-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #5a5450;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2e2a26;
+  }
+
+  .day-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .day-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .day-item:hover { background: #2e2a26; }
+
+  .day-item.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .day-item.active .day-count { color: rgba(255,255,255,0.6); }
+
+  .day-label { font-size: 12px; }
+  .day-date { font-size: 10px; color: #5a5450; margin-top: 1px; }
+  .day-item.active .day-date { color: rgba(255,255,255,0.6); }
+  .day-count {
+    font-size: 10px;
+    color: #5a5450;
+    background: #2e2a26;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+  .day-item.active .day-count { background: rgba(0,0,0,0.2); color: #fff; }
+
+  .new-day-btn {
+    margin-top: 24px;
+    background: transparent;
+    border: 1px solid #2e2a26;
+    color: #8a8078;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .new-day-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAIN ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    padding: 28px 40px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .day-heading {
+    font-family: 'Instrument Serif', serif;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .day-heading span {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 32px;
+    display: block;
+    margin-top: 4px;
+  }
+
+  .stats-row {
+    text-align: right;
+    color: var(--ink-soft);
+  }
+
+  .stats-total {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stats-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 24px 40px;
+  }
+
+  /* ── ENTRY LIST ── */
+  .entries-wrap {
+    padding: 0 40px;
+    flex: 1;
+  }
+
+  .entry-card {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 20px;
+    align-items: start;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--line);
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .entry-time {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 2px;
+  }
+
+  .time-range {
+    font-size: 11px;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .time-range .sep { color: var(--ink-faint); }
+
+  .entry-duration {
+    font-size: 10px;
+    color: var(--ink-faint);
+    background: var(--accent-pale);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+  }
+
+  .entry-detail {
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    line-height: 1.4;
+    color: var(--ink);
+    padding-top: 2px;
+  }
+
+  .entry-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    padding-top: 4px;
+  }
+
+  .entry-card:hover .entry-actions { opacity: 1; }
+
+  .btn-icon {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-icon.del:hover { border-color: #c00; color: #c00; }
+
+  /* ── ADD FORM ── */
+  .add-form {
+    margin: 16px 40px 40px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr auto;
+    gap: 12px;
+    align-end: end;
+    box-shadow: 0 2px 16px var(--shadow);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .field input, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    transition: border-color 0.15s;
+    outline: none;
+    width: 100%;
+  }
+
+  .field input[type="time"] { font-size: 13px; cursor: pointer; }
+
+  .field input:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .field textarea {
+    resize: none;
+    height: 44px;
+    line-height: 1.5;
+  }
+
+  .add-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    align-self: end;
+    white-space: nowrap;
+  }
+
+  .add-btn:hover { background: #a83a22; }
+  .add-btn:active { transform: scale(0.97); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 40px;
+    color: var(--ink-faint);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  .empty h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .empty p { font-size: 12px; }
+
+  /* ── NO DAY SELECTED ── */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px;
+    color: var(--ink-faint);
+  }
+
+  .welcome h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+
+  .welcome p { font-size: 12px; max-width: 300px; line-height: 1.8; }
+
+  /* ── EDIT MODAL ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,22,18,0.5);
+    backdrop-filter: blur(3px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.15s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 32px;
+    width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: popIn 0.2s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .modal h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .modal-fields { display: flex; flex-direction: column; gap: 14px; }
+
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn-secondary {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* ── DELETE DAY ── */
+  .del-day-btn {
+    margin-top: 8px;
+    background: transparent;
+    border: none;
+    color: #4a4040;
+    padding: 6px 0;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+    text-align: left;
+  }
+  .del-day-btn:hover { color: #c00; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { height: auto; position: relative; }
+    .add-form { grid-template-columns: 1fr 1fr; }
+    .add-form .field:last-of-type { grid-column: 1/-1; }
+    .topbar { padding: 20px 20px 0; }
+    .entries-wrap { padding: 0 20px; }
+    .add-form { margin: 16px 20px 32px; }
+    .entry-card { grid-template-columns: 100px 1fr; }
+    .entry-actions { opacity: 1; grid-column: 1/-1; }
+    .divider { margin: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="logo">Ya lo<br><em>hice.</em></div>
+    <div class="tagline">Tu diario de lo logrado</div>
+    <div class="sidebar-section-title">Días registrados</div>
+    <ul class="day-list" id="dayList"></ul>
+    <button class="new-day-btn" id="newDayBtn">+ Nuevo día</button>
+    <button class="del-day-btn" id="delDayBtn" style="display:none">✕ Eliminar este día</button>
+  </aside>
+
+  <main class="main" id="mainArea">
+    <div class="welcome">
+      <div style="font-size:56px;margin-bottom:20px">✦</div>
+      <h2>¿Qué hiciste hoy?</h2>
+      <p>Selecciona un día en el panel o crea uno nuevo para empezar a registrar lo que ya lograste.</p>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="editOverlay" style="display:none">
+  <div class="modal">
+    <h3>Editar entrada</h3>
+    <div class="modal-fields">
+      <div class="modal-row">
+        <div class="field">
+          <label>Hora inicio</label>
+          <input type="time" id="editStart">
+        </div>
+        <div class="field">
+          <label>Hora término</label>
+          <input type="time" id="editEnd">
+        </div>
+      </div>
+      <div class="field">
+        <label>¿Qué hiciste?</label>
+        <textarea id="editDetail" rows="4" style="height:80px"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelEdit">Cancelar</button>
+      <button class="add-btn" id="saveEdit">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────
+const STORAGE_KEY = 'yaLohice_v1';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let data = loadData();
+let selectedDay = null;
+let editingEntry = null; // { dayId, entryId }
+
+// ── HELPERS ────────────────────────────────────────
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatKey(key) {
+  const [y,m,d] = key.split('-');
+  const date = new Date(+y, +m-1, +d);
+  return date.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+}
+
+function shortKey(key) {
+  const [y,m,d] = key.split('-');
+  const date = new Date(+y, +m-1, +d);
+  return date.toLocaleDateString('es-CL', { day:'numeric', month:'short' });
+}
+
+function dayOfWeek(key) {
+  const [y,m,d] = key.split('-');
+  const date = new Date(+y, +m-1, +d);
+  return date.toLocaleDateString('es-CL', { weekday:'long' });
+}
+
+function calcDuration(start, end) {
+  if (!start || !end) return '';
+  const [sh,sm] = start.split(':').map(Number);
+  const [eh,em] = end.split(':').map(Number);
+  const mins = (eh*60+em) - (sh*60+sm);
+  if (mins <= 0) return '';
+  if (mins < 60) return `${mins}min`;
+  const h = Math.floor(mins/60), m = mins%60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function totalDuration(entries) {
+  let total = 0;
+  for (const e of entries) {
+    if (!e.start || !e.end) continue;
+    const [sh,sm] = e.start.split(':').map(Number);
+    const [eh,em] = e.end.split(':').map(Number);
+    const mins = (eh*60+em) - (sh*60+sm);
+    if (mins > 0) total += mins;
+  }
+  if (!total) return '0min';
+  if (total < 60) return `${total}min`;
+  const h = Math.floor(total/60), m = total%60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+// ── RENDER SIDEBAR ─────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('dayList');
+  const days = Object.keys(data).sort((a,b) => b.localeCompare(a));
+  list.innerHTML = '';
+
+  if (!days.length) {
+    list.innerHTML = '<li style="color:#3a3630;font-size:11px;padding:8px 4px">Sin días aún.</li>';
+  }
+
+  for (const key of days) {
+    const entries = data[key] || [];
+    const li = document.createElement('li');
+    li.className = 'day-item' + (key === selectedDay ? ' active' : '');
+    li.innerHTML = `
+      <div>
+        <div class="day-label">${dayOfWeek(key)}</div>
+        <div class="day-date">${shortKey(key)}</div>
+      </div>
+      <span class="day-count">${entries.length}</span>`;
+    li.addEventListener('click', () => selectDay(key));
+    list.appendChild(li);
+  }
+
+  document.getElementById('delDayBtn').style.display = selectedDay ? '' : 'none';
+}
+
+// ── SELECT / RENDER DAY ────────────────────────────
+function selectDay(key) {
+  selectedDay = key;
+  renderSidebar();
+  renderMain();
+}
+
+function renderMain() {
+  const area = document.getElementById('mainArea');
+
+  if (!selectedDay) {
+    area.innerHTML = `<div class="welcome">
+      <div style="font-size:56px;margin-bottom:20px">✦</div>
+      <h2>¿Qué hiciste hoy?</h2>
+      <p>Selecciona un día en el panel o crea uno nuevo para empezar a registrar lo que ya lograste.</p>
+    </div>`;
+    return;
+  }
+
+  const entries = (data[selectedDay] || []).slice().sort((a,b) => {
+    if (a.start < b.start) return -1;
+    if (a.start > b.start) return 1;
+    return 0;
+  });
+
+  const totalTime = totalDuration(entries);
+  const label = formatKey(selectedDay);
+  const [weekday, ...rest] = label.split(' ');
+  const restLabel = rest.join(' ');
+
+  let entriesHTML = '';
+  if (!entries.length) {
+    entriesHTML = `<div class="empty">
+      <div class="empty-icon">○</div>
+      <h3>Sin registros aún</h3>
+      <p>Agrega lo primero que hiciste hoy usando el formulario de abajo.</p>
+    </div>`;
+  } else {
+    for (const e of entries) {
+      const dur = calcDuration(e.start, e.end);
+      entriesHTML += `
+        <div class="entry-card" data-id="${e.id}">
+          <div class="entry-time">
+            <div class="time-range">${e.start || '—'}<span class="sep">→</span>${e.end || '—'}</div>
+            ${dur ? `<div class="entry-duration">${dur}</div>` : ''}
+          </div>
+          <div class="entry-detail">${escHtml(e.detail)}</div>
+          <div class="entry-actions">
+            <button class="btn-icon" title="Editar" onclick="openEdit('${selectedDay}','${e.id}')">✎</button>
+            <button class="btn-icon del" title="Eliminar" onclick="deleteEntry('${selectedDay}','${e.id}')">✕</button>
+          </div>
+        </div>`;
+    }
+  }
+
+  area.innerHTML = `
+    <div class="topbar">
+      <div class="day-heading">
+        ${capitalize(weekday)}
+        <span>${restLabel}</span>
+      </div>
+      <div class="stats-row">
+        <div class="stats-total">${entries.length}</div>
+        <div class="stats-label">entradas · ${totalTime}</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="entries-wrap" id="entriesWrap">${entriesHTML}</div>
+    <form class="add-form" id="addForm" onsubmit="return false">
+      <div class="field">
+        <label>Hora inicio</label>
+        <input type="time" id="fStart" required>
+      </div>
+      <div class="field">
+        <label>Hora término</label>
+        <input type="time" id="fEnd">
+      </div>
+      <div class="field">
+        <label>¿Qué hiciste?</label>
+        <textarea id="fDetail" placeholder="Describe lo que lograste..." required></textarea>
+      </div>
+      <button class="add-btn" onclick="addEntry()">+ Agregar</button>
+    </form>`;
+
+  // Set time defaults
+  const now = new Date();
+  document.getElementById('fStart').value =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+// ── ACTIONS ────────────────────────────────────────
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+function newDay() {
+  const key = todayKey();
+  if (!data[key]) data[key] = [];
+  saveData(data);
+  selectDay(key);
+}
+
+function deleteCurrentDay() {
+  if (!selectedDay) return;
+  if (!confirm(`¿Eliminar el día "${formatKey(selectedDay)}" y todas sus entradas?`)) return;
+  delete data[selectedDay];
+  saveData(data);
+  selectedDay = null;
+  renderSidebar();
+  renderMain();
+}
+
+function addEntry() {
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const detail = document.getElementById('fDetail').value.trim();
+  if (!detail) { document.getElementById('fDetail').focus(); return; }
+
+  if (!data[selectedDay]) data[selectedDay] = [];
+  data[selectedDay].push({ id: uid(), start, end, detail });
+  saveData(data);
+  renderSidebar();
+  renderMain();
+
+  // Scroll to bottom
+  setTimeout(() => {
+    const wrap = document.getElementById('entriesWrap');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  }, 50);
+}
+
+function deleteEntry(dayId, entryId) {
+  data[dayId] = (data[dayId] || []).filter(e => e.id !== entryId);
+  saveData(data);
+  renderSidebar();
+  renderMain();
+}
+
+function openEdit(dayId, entryId) {
+  const entry = (data[dayId] || []).find(e => e.id === entryId);
+  if (!entry) return;
+  editingEntry = { dayId, entryId };
+  document.getElementById('editStart').value = entry.start || '';
+  document.getElementById('editEnd').value = entry.end || '';
+  document.getElementById('editDetail').value = entry.detail || '';
+  document.getElementById('editOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('editDetail').focus(), 50);
+}
+
+function saveEdit() {
+  if (!editingEntry) return;
+  const { dayId, entryId } = editingEntry;
+  const entry = (data[dayId] || []).find(e => e.id === entryId);
+  if (!entry) return;
+
+  entry.start = document.getElementById('editStart').value;
+  entry.end = document.getElementById('editEnd').value;
+  entry.detail = document.getElementById('editDetail').value.trim();
+
+  saveData(data);
+  closeEdit();
+  renderSidebar();
+  renderMain();
+}
+
+function closeEdit() {
+  editingEntry = null;
+  document.getElementById('editOverlay').style.display = 'none';
+}
+
+// ── EVENTS ─────────────────────────────────────────
+document.getElementById('newDayBtn').addEventListener('click', newDay);
+document.getElementById('delDayBtn').addEventListener('click', deleteCurrentDay);
+document.getElementById('cancelEdit').addEventListener('click', closeEdit);
+document.getElementById('saveEdit').addEventListener('click', saveEdit);
+document.getElementById('editOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('editOverlay')) closeEdit();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeEdit();
+});
+
+// ── INIT ───────────────────────────────────────────
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>
