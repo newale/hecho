@@ -322,6 +322,8 @@
   }
 
   .field input[type="time"] { font-size: 13px; cursor: pointer; }
+  /* Force 24h clock display */
+  input[type="time"]::-webkit-datetime-edit-ampm-field { display: none; }
 
   .field input:focus, .field textarea:focus {
     border-color: var(--accent);
@@ -517,11 +519,11 @@
       <div class="modal-row">
         <div class="field">
           <label>Hora inicio</label>
-          <input type="time" id="editStart">
+          <input type="time" id="editStart" lang="en-GB">
         </div>
         <div class="field">
           <label>Hora término</label>
-          <input type="time" id="editEnd">
+          <input type="time" id="editEnd" lang="en-GB">
         </div>
       </div>
       <div class="field">
@@ -705,11 +707,11 @@ function renderMain() {
     <form class="add-form" id="addForm" onsubmit="return false">
       <div class="field">
         <label>Hora inicio</label>
-        <input type="time" id="fStart" required>
+        <input type="time" id="fStart" lang="en-GB" required>
       </div>
       <div class="field">
         <label>Hora término</label>
-        <input type="time" id="fEnd">
+        <input type="time" id="fEnd" lang="en-GB">
       </div>
       <div class="field">
         <label>¿Qué hiciste?</label>
