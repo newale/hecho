@@ -148,6 +148,22 @@
   }
   .new-day-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+  .data-btn {
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid #2e2a26;
+    color: #8a8078;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .data-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   /* ── MAIN ── */
   .main {
     display: flex;
@@ -500,6 +516,9 @@
     <ul class="day-list" id="dayList"></ul>
     <button class="new-day-btn" id="newDayBtn">+ Nuevo día</button>
     <button class="del-day-btn" id="delDayBtn" style="display:none">✕ Eliminar este día</button>
+    <button class="data-btn" id="downloadBtn">↓ Descargar datos</button>
+    <button class="data-btn" id="uploadBtn">↑ Subir datos</button>
+    <input type="file" id="uploadInput" accept=".json" style="display:none">
   </aside>
 
   <main class="main" id="mainArea">
@@ -549,6 +568,22 @@ function loadData() {
 
 function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ── DATA EXPORT/IMPORT ─────────────────────────────
+function downloadData() {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'yalohice-data.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function uploadData() {
+  document.getElementById('uploadInput').click();
 }
 
 let data = loadData();
@@ -808,6 +843,23 @@ function closeEdit() {
 // ── EVENTS ─────────────────────────────────────────
 document.getElementById('newDayBtn').addEventListener('click', newDay);
 document.getElementById('delDayBtn').addEventListener('click', deleteCurrentDay);
+document.getElementById('downloadBtn').addEventListener('click', downloadData);
+document.getElementById('uploadBtn').addEventListener('click', uploadData);
+document.getElementById('uploadInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      saveData(importedData);
+      location.reload();
+    } catch (err) {
+      alert('Error al cargar el archivo JSON. Asegúrate de que sea un archivo válido.');
+    }
+  };
+  reader.readAsText(file);
+});
 document.getElementById('cancelEdit').addEventListener('click', closeEdit);
 document.getElementById('saveEdit').addEventListener('click', saveEdit);
 document.getElementById('editOverlay').addEventListener('click', e => {
